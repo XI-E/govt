@@ -1,19 +1,47 @@
 #ifndef SOCIETY_HPP_INCLUDED
 #define SOCIETY_HPP_INCLUDED
 
-#include <string>
+#include <cstring>
 #include "govt.hpp"
+#include "rlutil.h"
 
 typedef unsigned long long ull;
+
+
+class house{
+    public:
+	house(address, ull);		    // Constructor
+        void purchase(ull);	 	    // Purchase of house
+                                            // true on success, false on failure
+        ull getown(void);                   // Returns owner UID
+	ull getHID(void);		    // Returns HID or House Identification Number
+        address getadr(void);               // Returns house address
+        ull getprice(void);		    // Returns price of house
+        friend bool occupy(ull, ull);	    // Refer to occupy(ull id, ull hid) after class definitions
+	friend house govt::matchhouse(ull); // Refer to govt.hpp
+
+    private:
+	ull HID;			    // House Identification Number
+        ull owner;      	            // Owner UID
+	ull renter;			    // If house is rented, to whom
+        bool isrented;                      // Is the house currently out on rent
+        bool isoccupied;                    // Does anyone currently live in the house
+        address adr;                        // Location of the house
+        ull price;           		    // Market sale price of house
+//      Rent of house = price/100           // Will be calculated later as per price
+
+};
 
 class human{
 
     public:
-        human(string, unsigned short,	    // Constructor
+        human(std::string, unsigned short,	    // Constructor
               unsigned int, ull,	    // Takes name, age, year of birth,
               bool);      	            // parent's UID (either) and sex
+	
+	human(void){ ;}			    // Default constructor
 
-        string getname(void);               // Returns name of person
+        std::string getname(void);               // Returns name of person
         unsigned short getage(void);        // Returns age of person
         ull getUID(void);                   // Returns UID of person
         ull getparent(bool = false);        // Returns parent's UID; false for 1st, true for 2nd
@@ -24,13 +52,15 @@ class human{
         ull getspouse(void);                // Returns spouse UID, NULL if unmarried
         govt::bank::loan getloan(void);     // Returns load ID, NULL if no loan taken
         void adulthood(void);               // Changes person into adult, generates empty bank account
-        friend bool house::purchase(ull,    // Refer to class house
-                                    ull);
-	friend bool house::occupy(ull);	    // Refer to class house
-	friend human matchhuman(ull);       // Refer to matchhuman(ull id)
+        friend bool house::purchase(ull);   // Refer to class house
+        friend bool occupy(ull, ull);	    // Refer to occupy(ull id, ull hid) after class definitions
+	friend bool govt::bank::trans(ull,  // Refer to govt.hpp
+				      ull,
+				      bool);
+	friend human govt::matchhuman(ull); // Refer to govt.hpp
 
     private:
-        string name;                        // Name of person
+        std::string name;                        // Name of person
         unsigned short age;                 // Age of person
         unsigned int year;                  // Year of birth
         ull UID;                            // Unique Identification Number (UID number)  -- 12 digits
@@ -58,31 +88,6 @@ class human{
         //////////////////////////
 };
 
-class house{
-    public:
-	house(address, ull);		    // Constructor
-	house(void);			    // Default Constructor
-        void purchase(ull, ull);	    // Sale/purchase of house
-                                            // purchase(a, b)
-                                            // ownership transfers from a to b
-                                            // true on success, false on failure
-        ull getown(void);                   // Returns owner UID
-        address getadr(void);               // Returns house address
-        ull getprice(void);		    // Returns price of house
-        friend bool occupy(ull);	    // Change occupancy status of house
-	friend house matchhouse(ull)	    // Refer to matchhouse(ull id) after class definitions 
-
-    private:
-	ull HID;			    // House Identification Number
-        ull owner;      	            // Owner UID
-        bool isrented;                      // Is the house currently out on rent
-        bool isoccupied;                    // Does anyone currently live in the house
-        address adr;                        // Location of the house
-        ull price;           		    // Market sale price of house
-//      Rent of house = price/100           // Will be calculated later as per price
-
-};
-
 struct address{
     unsigned short number;                  // House number
     unsigned short region;                  // Region code
@@ -98,7 +103,7 @@ struct address{
 ///////////////////////////////////////////////////
 ///     Function definitions for class human
 
-human::human(string inp_name, unsigned short inp_age,
+human::human(std::string inp_name, unsigned short inp_age,
 	     unsigned int inp_year, ull inp_par_uid,
 	     bool inp_sex){
 
@@ -107,7 +112,7 @@ human::human(string inp_name, unsigned short inp_age,
 	this->year = inp_year;
 	this->sex = inp_sex;
 
-	human temp (matchhuman(inp_par_uid));
+	human temp (govt::matchhuman(inp_par_uid));
 
 	this->parent_UID[0] = inp_par_uid);
 	this->parent_UID[1] = temp.getspouse());
@@ -123,7 +128,7 @@ human::human(string inp_name, unsigned short inp_age,
 	this->UID = govt::getmaxUID(void);
 }
 
-string human::getname(void){
+std::string human::getname(void){
 	return this->name;
 }
 
@@ -140,7 +145,7 @@ ull human::getparent(bool a){
 }
 
 house human::getres(void){
-	return matchhouse(this->residence);
+	return govt::matchhouse(this->residence);
 }
 
 ull human::getcash(bool a){
@@ -187,15 +192,126 @@ bool human::isadult(void){
 ///////////////////////////////////////////////////
 ///  Function defenitions for class house
 
+house::house(address inp_addr, ull inp_pr, ull inp_id){
+	this->adr = inp_addr;
+	this->price = inp_pr;
+
+	this->HID = inp_id;
+
+	this->owner = 0;
+	this->renter = 0;
+	this->isrented = false;
+	this->isoccupied = false;
+}
+
+address house::getadr(void){
+	return this->adr;
+}
+
+ull house::getprice(void){
+	return this->price;
+}
+
+ull house::getown(void){
+	return this->owner;
+}
+
+ull house::getHID(void){
+	return this->HID;
+}
+
+void house::purchase(ull id){
+	human temp;
+	temp = govt::matchhuman(this->owner);
+
+	std::cout << "\n\nAre you sure you wish to purchase house number "
+		<< this->adr.number << " in " << govt::getRegionName(this->adr)
+		<< "?\n" << "You must pay " << CURRENCY << this->getprice(void)
+		<< " to " << temp.name << ".";
+
+	
+	
+	bool a = false;	
+	do{	
+		char inp; std::cin.ignore(1000, '\n');
+		inp = getch();
+	
+		switch (inp){
+			case 'y': case 'Y':
+				human buyer = govt::matchhuman(id);
+				if(this->isoccupied(void)){
+					rlutil::setColor(rlutil::RED);
+					std::cout << "\nPurchase fail! House is occupied!";
+					rlutil::setColor(rlutil::WHITE);
+				}
+				if(this->isrented(void)){
+					rlutil::setColor(rlutil::RED);
+					std::cout << "\nPurchase fail! House is rented!";
+					rlutil::setColor(rlutil::WHITE);
+				}
+				if(temp2.getcash(true) >= this->getprice(void)){
+					govt::bank::trans(buyer.acc, this->getprice(void), false);
+					govt::bank::trans(temp.acc, this->getprice(void), true);
+					this->owner = buyer.getUID(void);
+					rlutil::setColor(rlutil::GREEN);
+					std::cout << "\nPurchase successful!";
+					rlutil::setColor(rlutil::WHITE);					
+				}	
+				else{
+					rlutil::setColor(rlutil::RED);
+					std::cout << "\nYou do not have enough money in bank!";
+					rlutil::setColor(rlutil::WHITE);
+				}			
+				a = true;
+				break;
+			case 'n': case 'N':
+				a = true;
+				break;
+			default:
+				rlutil::setColor(rlutil::RED);
+				std::cout << "Invalid input!";
+				rlutil::setColor(rlutil::WHITE);
+		}
+	}while(!a)
+}
 
 ///////////////////////////////////////////////////
 
-human matchhuman(ull id){
-	; // stuff
-}
+bool occupy(ull id, ull hid){
+	human temp;
+	temp = govt::matchhuman(id);
 
-house matchhouse(ull id){
-	; // stuff
+	house temph;
+	temph = govt::matchhouse(hid);
+
+	if(temph.owner == temp.getUID(void) || temph.owner == temp.getspouse(void) ||
+	   temph.owner == temp.getparent(false) || temph.owner == temp.getparent(true))
+	{
+		if(!temph.isrented){
+			temp.residence = temph.getHID(void);
+			temph.isoccupied = true;
+			return true;
+		}
+		else{
+			return false;
+		}
+	}
+	else if(temph.isrented(void)){
+		if(temph.renter == temp.getUID(void) || temph.renter == temp.getspouse(void) ||
+		   temph.renter == temp.getparent(false) || temph.renter == temp.getparent(true))
+		{
+			temp.residence = temph.getHID(void);
+			temph.isoccupied = true;
+			return true;
+		}
+		else{
+			return false;
+		}
+	}
+	else{
+		return false;
+	}
+		
 }
 
 #endif // SOCIETY_HPP_INCLUDED
