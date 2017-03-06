@@ -8,6 +8,17 @@
 typedef unsigned long long ull;
 
 
+
+class address{
+public:
+    unsigned short number;                  // House number
+    unsigned short region;                  // Region code
+    int operator =(address & a){            // Standard copy constructor
+        this->number = a.number;
+        this->region = a.region;
+    }
+};
+
 class house{
     public:
 	house(address, ull);		    // Constructor
@@ -18,7 +29,7 @@ class house{
         address getadr(void);               // Returns house address
         ull getprice(void);		    // Returns price of house
         friend bool occupy(ull, ull);	    // Refer to occupy(ull id, ull hid) after class definitions
-	friend house govt::matchhouse(ull); // Refer to govt.hpp
+	friend house ::govt::matchhouse(ull); // Refer to govt.hpp
 
     private:
 	ull HID;			    // House Identification Number
@@ -50,7 +61,7 @@ class human{
         bool isadult(void);                 // Is the person an adult
         ull getacc(void);        	    // Returns bank account number of person
         ull getspouse(void);                // Returns spouse UID, NULL if unmarried
-        govt::bank::loan getloan(void);     // Returns load ID, NULL if no loan taken
+        ::govt::bank::loan getloan(void);     // Returns load ID, NULL if no loan taken
         void adulthood(void);               // Changes person into adult, generates empty bank account
         friend bool house::purchase(ull);   // Refer to class house
         friend bool occupy(ull, ull);	    // Refer to occupy(ull id, ull hid) after class definitions
@@ -86,15 +97,6 @@ class human{
         unsigned short vote;                // Candidate number to whom vote is cast; reset to 0 after election
 
         //////////////////////////
-};
-
-struct address{
-    unsigned short number;                  // House number
-    unsigned short region;                  // Region code
-    operator =(address & a){                // Standard copy constructor
-        this->number = a.number;
-        this->region = a.region;
-    }
 };
 
 
